@@ -7,11 +7,13 @@
 //
 // The pending/commit model. SonicOS does not apply writes immediately; they
 // accumulate in a pending configuration that must be activated with a single
-// commit call. Terraform's plugin protocol applies resources one at a time and
-// gives the provider no global "end of apply" hook, so the pragmatic policy
-// (controlled by the provider's commit_on_apply attribute, default true) is to
-// commit after each resource write. That keeps every apply self-consistent at
-// the cost of one commit per changed resource. Set commit_on_apply = false to
+// commit call. Terraform may execute resource operations concurrently (subject
+// to the dependency graph and -parallelism) and gives the provider no global
+// "end of apply" hook, so the pragmatic policy (controlled by the provider's
+// commit_on_apply attribute, default true) is to commit after each resource
+// write. That keeps every apply self-consistent at the cost of one commit per
+// changed resource. Because SonicOS permits only a single API session, runs
+// against one appliance should be serialized regardless. Set commit_on_apply = false to
 // stage changes without committing and drive the commit yourself (for example
 // with a null_resource calling the API, or a manual commit), which restores the
 // "stage everything, commit once" transaction boundary when you need it.
@@ -102,6 +104,23 @@ func (p *sonicosProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 func (p *sonicosProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	var config providerModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Unknown attribute values (e.g. derived from another resource that has not
+	// been applied yet) cannot be resolved at configure time. Fail fast rather
+	// than silently falling back to environment variables, which would make the
+	// provider's effective configuration non-deterministic.
+	if config.Host.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(path.Root("host"), "Unknown host", "The `host` value is unknown at configure time. Set it to a known value (or via SONICOS_HOST) rather than a value derived from another resource.")
+	}
+	if config.Username.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(path.Root("username"), "Unknown username", "The `username` value is unknown at configure time. Set it to a known value (or via SONICOS_USERNAME).")
+	}
+	if config.Password.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(path.Root("password"), "Unknown password", "The `password` value is unknown at configure time. Set it to a known value (or via SONICOS_PASSWORD).")
+	}
 	if resp.Diagnostics.HasError() {
 		return
 	}

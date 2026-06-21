@@ -110,6 +110,44 @@ func TestGetAddressObjectIPv4NotFound(t *testing.T) {
 	}
 }
 
+func TestGetAddressObjectIPv4SynthesizedNotFoundPathIncludesSelector(t *testing.T) {
+	// Server returns 200 with an empty collection, so the client synthesizes the
+	// 404. The error path must reflect the actual /name/<name> request path, not
+	// the bare collection path.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(addressObjectsBody{})
+	}))
+	defer srv.Close()
+
+	_, err := newTestClient(t, srv).GetAddressObjectIPv4(context.Background(), "missing host")
+	if !IsNotFound(err) {
+		t.Fatalf("expected IsNotFound, got %v", err)
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.Path != "/address-objects/ipv4/name/missing%20host" {
+		t.Errorf("expected path with /name/ selector, got %q", apiErr.Path)
+	}
+}
+
+func TestGetAccessRuleSynthesizedNotFoundPathIncludesSelector(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(accessRulesBody{})
+	}))
+	defer srv.Close()
+
+	_, err := newTestClient(t, srv).GetAccessRule(context.Background(), "abc-123")
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected *APIError, got %T", err)
+	}
+	if apiErr.Path != "/access-rules/ipv4/uuid/abc-123" {
+		t.Errorf("expected path with /uuid/ selector, got %q", apiErr.Path)
+	}
+}
+
 func TestGetAddressObjectIPv4Found(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/sonicos/address-objects/ipv4/name/web1" {

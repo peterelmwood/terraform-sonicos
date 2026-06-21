@@ -41,7 +41,8 @@ func (c *Client) UpdateAddressObjectIPv4(ctx context.Context, name string, obj A
 // GetAddressObjectIPv4 fetches a single IPv4 address object by name. It returns
 // an *APIError with a 404 status (see IsNotFound) when the object is absent.
 func (c *Client) GetAddressObjectIPv4(ctx context.Context, name string) (*AddressObjectIPv4, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, addressObjectsPath+"/name/"+url.PathEscape(name), nil)
+	path := addressObjectsPath + "/name/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func (c *Client) GetAddressObjectIPv4(ctx context.Context, name string) (*Addres
 			return w.IPv4, nil
 		}
 	}
-	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: addressObjectsPath, Messages: []string{fmt.Sprintf("address object %q not found", name)}}
+	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: path, Messages: []string{fmt.Sprintf("address object %q not found", name)}}
 }
 
 // DeleteAddressObjectIPv4 stages deletion of an IPv4 address object.
@@ -94,7 +95,8 @@ func (c *Client) UpdateServiceObject(ctx context.Context, name string, obj Servi
 
 // GetServiceObject fetches a single service object by name.
 func (c *Client) GetServiceObject(ctx context.Context, name string) (*ServiceObject, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, serviceObjectsPath+"/name/"+url.PathEscape(name), nil)
+	path := serviceObjectsPath + "/name/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +109,7 @@ func (c *Client) GetServiceObject(ctx context.Context, name string) (*ServiceObj
 			return &body.ServiceObjects[i], nil
 		}
 	}
-	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: serviceObjectsPath, Messages: []string{fmt.Sprintf("service object %q not found", name)}}
+	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: path, Messages: []string{fmt.Sprintf("service object %q not found", name)}}
 }
 
 // DeleteServiceObject stages deletion of a service object.
@@ -147,7 +149,8 @@ func (c *Client) UpdateZone(ctx context.Context, name string, obj Zone) error {
 
 // GetZone fetches a single zone by name.
 func (c *Client) GetZone(ctx context.Context, name string) (*Zone, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, zonesPath+"/name/"+url.PathEscape(name), nil)
+	path := zonesPath + "/name/" + url.PathEscape(name)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +163,7 @@ func (c *Client) GetZone(ctx context.Context, name string) (*Zone, error) {
 			return &body.Zones[i], nil
 		}
 	}
-	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: zonesPath, Messages: []string{fmt.Sprintf("zone %q not found", name)}}
+	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: path, Messages: []string{fmt.Sprintf("zone %q not found", name)}}
 }
 
 // DeleteZone stages deletion of a zone.
@@ -213,7 +216,8 @@ func (c *Client) UpdateAccessRule(ctx context.Context, uuid string, rule AccessR
 
 // GetAccessRule fetches a single access rule by UUID.
 func (c *Client) GetAccessRule(ctx context.Context, uuid string) (*AccessRule, error) {
-	req, err := c.newRequest(ctx, http.MethodGet, accessRulesPath+"/uuid/"+url.PathEscape(uuid), nil)
+	path := accessRulesPath + "/uuid/" + url.PathEscape(uuid)
+	req, err := c.newRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +230,7 @@ func (c *Client) GetAccessRule(ctx context.Context, uuid string) (*AccessRule, e
 			return w.IPv4, nil
 		}
 	}
-	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: accessRulesPath, Messages: []string{fmt.Sprintf("access rule %q not found", uuid)}}
+	return nil, &APIError{StatusCode: http.StatusNotFound, Method: http.MethodGet, Path: path, Messages: []string{fmt.Sprintf("access rule %q not found", uuid)}}
 }
 
 // DeleteAccessRule stages deletion of an access rule by UUID.

@@ -215,25 +215,25 @@ func (m addressObjectModel) toAPI() (client.AddressObjectIPv4, diag.Diagnostics)
 
 	switch m.Type.ValueString() {
 	case "host":
-		if m.Host.IsNull() || m.Host.ValueString() == "" {
+		if isBlank(m.Host) {
 			diags.AddError("Missing host", "`host` is required when `type` is `host`.")
 			return obj, diags
 		}
 		obj.Host = &client.AddressObjectHost{IP: m.Host.ValueString()}
 	case "network":
-		if m.NetworkSubnet.IsNull() || m.NetworkMask.IsNull() {
-			diags.AddError("Missing network attributes", "`network_subnet` and `network_mask` are required when `type` is `network`.")
+		if isBlank(m.NetworkSubnet) || isBlank(m.NetworkMask) {
+			diags.AddError("Missing network attributes", "`network_subnet` and `network_mask` are required and must be non-empty when `type` is `network`.")
 			return obj, diags
 		}
 		obj.Network = &client.AddressObjectNetwork{Subnet: m.NetworkSubnet.ValueString(), Mask: m.NetworkMask.ValueString()}
 	case "range":
-		if m.RangeBegin.IsNull() || m.RangeEnd.IsNull() {
-			diags.AddError("Missing range attributes", "`range_begin` and `range_end` are required when `type` is `range`.")
+		if isBlank(m.RangeBegin) || isBlank(m.RangeEnd) {
+			diags.AddError("Missing range attributes", "`range_begin` and `range_end` are required and must be non-empty when `type` is `range`.")
 			return obj, diags
 		}
 		obj.Range = &client.AddressObjectRange{Begin: m.RangeBegin.ValueString(), End: m.RangeEnd.ValueString()}
 	case "fqdn":
-		if m.FQDNDomain.IsNull() || m.FQDNDomain.ValueString() == "" {
+		if isBlank(m.FQDNDomain) {
 			diags.AddError("Missing fqdn_domain", "`fqdn_domain` is required when `type` is `fqdn`.")
 			return obj, diags
 		}
@@ -242,6 +242,11 @@ func (m addressObjectModel) toAPI() (client.AddressObjectIPv4, diag.Diagnostics)
 		diags.AddError("Invalid type", fmt.Sprintf("unknown address object type %q", m.Type.ValueString()))
 	}
 	return obj, diags
+}
+
+// isBlank reports whether a string attribute is null, unknown, or empty.
+func isBlank(s types.String) bool {
+	return s.IsNull() || s.IsUnknown() || s.ValueString() == ""
 }
 
 // fromAPIAddressObject maps an API object back into the Terraform model,

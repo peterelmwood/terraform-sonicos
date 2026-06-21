@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -67,10 +68,16 @@ func (r *serviceObjectResource) Schema(_ context.Context, _ resource.SchemaReque
 			"port_begin": schema.Int64Attribute{
 				Optional:            true,
 				MarkdownDescription: "First port in the range (1-65535). Required for `tcp`/`udp`.",
+				Validators: []validator.Int64{
+					int64validator.Between(1, 65535),
+				},
 			},
 			"port_end": schema.Int64Attribute{
 				Optional:            true,
-				MarkdownDescription: "Last port in the range (1-65535). Defaults to `port_begin` for a single port.",
+				MarkdownDescription: "Last port in the range (1-65535). Defaults to `port_begin` for a single port. Must be greater than or equal to `port_begin`.",
+				Validators: []validator.Int64{
+					int64validator.Between(1, 65535),
+				},
 			},
 		},
 	}
@@ -186,6 +193,10 @@ func (m serviceObjectModel) toAPI() (client.ServiceObject, diag.Diagnostics) {
 		end := begin
 		if !m.PortEnd.IsNull() {
 			end = m.PortEnd.ValueInt64()
+		}
+		if end < begin {
+			diags.AddError("Invalid port range", "`port_end` must be greater than or equal to `port_begin`.")
+			return obj, diags
 		}
 		obj.Port = &client.ServicePort{Begin: begin, End: end}
 	}

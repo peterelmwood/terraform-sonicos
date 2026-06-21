@@ -21,8 +21,9 @@ Two SonicOS behaviors shape the provider:
 - **Pending / commit model.** Writes (POST/PUT/DELETE) do not take effect
   immediately; they accumulate in a *pending* configuration that is activated
   with a single commit call (`POST /api/sonicos/config/pending`). Terraform's
-  plugin protocol applies resources one at a time with no global end-of-apply
-  hook, so the provider commits after each resource write by default
+  may execute resource operations concurrently (subject to the dependency graph
+  and `-parallelism`) and exposes no global end-of-apply hook, so the provider
+  commits after each resource write by default
   (`commit_on_apply = true`). Set `commit_on_apply = false` to stage changes
   without committing and drive the commit yourself when you want the whole
   apply to land as one transaction.
