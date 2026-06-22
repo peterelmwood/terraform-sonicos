@@ -30,3 +30,12 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Built provider binary
+terraform-provider-sonicos
+
+# Terraform working files
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
