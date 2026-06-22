@@ -1,11 +1,16 @@
-BINARY  := terraform-provider-sonicos
-VERSION ?= dev
+BINARY      := terraform-provider-sonicos
+LINT_BINARY := tfsonicos
+VERSION     ?= dev
 
-.PHONY: build install test vet fmt tidy clean
+.PHONY: build build-lint install test vet fmt tidy clean
 
 # Build the provider binary.
 build:
 	go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY) .
+
+# Build the tfsonicos config-linter CLI.
+build-lint:
+	go build -o $(LINT_BINARY) ./cmd/tfsonicos
 
 # Run the unit test suite.
 test:
@@ -29,4 +34,4 @@ install: build
 	cp $(BINARY) $(shell go env GOBIN 2>/dev/null || echo $(HOME)/go/bin)/
 
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) $(LINT_BINARY)

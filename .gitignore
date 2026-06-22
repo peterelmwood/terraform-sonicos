@@ -39,3 +39,6 @@ terraform-provider-sonicos
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
+
+# Built linter CLI (repo-root binary only; must not match cmd/tfsonicos sources)
+/tfsonicos

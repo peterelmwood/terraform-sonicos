@@ -112,6 +112,49 @@ is skipped under dev overrides.
   authenticates and shares the client; each resource implements Create / Read /
   Update / Delete / ImportState, with `Read` faithfully reflecting the appliance
   so Terraform's plan-diff and drift detection work for free.
+- [`internal/lint`](internal/lint) + [`cmd/tfsonicos`](cmd/tfsonicos) — the
+  configuration linter (see below).
+
+## Config linting
+
+Some mistakes only become visible when you look at the *whole* configuration —
+a rule pointing at an object defined in another file, a rule that can never
+match because a broader one precedes it, or an accidental any→any allow.
+Terraform's per-resource validation can't see across resources, so the linter
+fills that gap. It works at two levels:
+
+**In `terraform plan` (single-resource).** The provider validates the format of
+IP-bearing attributes during planning, so a malformed host IP or a
+non-contiguous subnet mask is reported as a clear diagnostic instead of an
+opaque appliance rejection at apply time.
+
+**Whole-config (`tfsonicos lint`).** A standalone CLI reads the JSON from
+`terraform show -json` (of a plan file or current state) and applies
+cross-resource rules:
+
+```sh
+make build-lint                                   # build ./tfsonicos
+terraform plan -out plan.tfplan
+terraform show -json plan.tfplan | ./tfsonicos lint
+# or lint current state:
+terraform show -json | ./tfsonicos lint
+# machine-readable, and fail CI on warnings too:
+terraform show -json plan.tfplan | ./tfsonicos lint -format json -strict
+```
+
+It exits non-zero when any **error**-severity finding is present (add `-strict`
+to also fail on warnings), so it can gate a pipeline. Rule categories:
+
+| Category | Examples | Severity |
+| --- | --- | --- |
+| Referential integrity | a rule/NAT policy references an address, service, or zone not defined in the config | error (zones/interfaces that may pre-exist on the appliance: warning) |
+| Field & format | invalid IPv4/IPv6, bad subnet mask, port out of range, reversed range | error |
+| Duplicate names | two resources declare the same object/zone/rule name (the appliance requires uniqueness) | error |
+| Shadowed rules | a rule can never match because an earlier, broader rule on the same zone pair handles its traffic | warning |
+| Overly-permissive | any→any allow rules; allows inbound from an untrusted zone on any service | warning |
+
+Built-in zones (`LAN`, `WAN`, `DMZ`, …) are treated as always present, so
+referencing them is never flagged.
 
 ## Limitations
 
