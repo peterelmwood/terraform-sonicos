@@ -16,6 +16,11 @@ build-lint:
 test:
 	go test ./... -count=1
 
+# Run acceptance tests against a live appliance. Requires TF_ACC=1 and the
+# SONICOS_* connection environment variables (see the README).
+testacc:
+	TF_ACC=1 go test ./internal/provider -run TestAcc -count=1 -v -timeout 30m
+
 # Static analysis.
 vet:
 	go vet ./...
