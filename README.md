@@ -37,15 +37,32 @@ Two SonicOS behaviors shape the provider:
 | Type | Terraform | SonicOS endpoint |
 | --- | --- | --- |
 | Resource | `sonicos_address_object` | `/address-objects/ipv4` |
+| Resource | `sonicos_address_object_ipv6` | `/address-objects/ipv6` |
 | Resource | `sonicos_service_object` | `/service-objects` |
 | Resource | `sonicos_zone` | `/zones` |
 | Resource | `sonicos_access_rule` | `/access-rules/ipv4` |
+| Resource | `sonicos_access_rule_ipv6` | `/access-rules/ipv6` |
+| Resource | `sonicos_nat_policy` | `/nat-policies/ipv4` |
+| Resource | `sonicos_interface` | `/interfaces/ipv4` |
 | Data source | `sonicos_address_object` | `/address-objects/ipv4` |
 
 These cover most day-to-day change volume. The architecture (a typed client in
 [`internal/client`](internal/client) plus one file per resource in
 [`internal/provider`](internal/provider)) is designed so additional object
-types — NAT policies, interfaces, IPv6 variants — follow the same pattern.
+types follow the same pattern.
+
+A few resource-specific notes:
+
+- **`sonicos_nat_policy`** is UUID-identified (like `sonicos_access_rule`). Each
+  of its six object slots takes an object name; an empty *original* slot means
+  `any`, and an empty *translated* slot means `original` (no translation on that
+  field).
+- **`sonicos_interface`** configures an existing physical/virtual port — it does
+  not create or destroy ports. Destroying the resource simply stops Terraform
+  from managing the interface; its last-applied settings remain on the
+  appliance.
+- **IPv6 networks** use a prefix length (`network_prefix`) rather than a dotted
+  mask.
 
 ## Provider configuration
 
@@ -102,6 +119,36 @@ provider_installation {
 Then run `terraform plan` / `apply` against a lab appliance — `terraform init`
 is skipped under dev overrides.
 
+## Testing
+
+Unit tests run with no appliance and exercise the client against an in-process
+HTTP server plus the resource mapping/validation logic:
+
+```sh
+make test   # go test ./...
+```
+
+**Acceptance tests** run real `plan`/`apply` cycles against a live appliance.
+They are gated by the standard `TF_ACC` variable (so they are skipped by `make
+test` and in CI) and read the same connection settings as the provider:
+
+```sh
+TF_ACC=1 \
+SONICOS_HOST=https://192.0.2.1 \
+SONICOS_USERNAME=tf-automation \
+SONICOS_PASSWORD=... \
+SONICOS_INSECURE=true \
+SONICOS_ACC_ZONE=LAN \
+SONICOS_ACC_INTERFACE=X2 \
+  go test ./internal/provider -run TestAcc -v
+```
+
+`SONICOS_ACC_ZONE` (default `LAN`) selects an existing zone for object tests;
+`SONICOS_ACC_INTERFACE` enables the interface test against a named port and is
+skipped when unset. Because SonicOS permits only one API session at a time, run
+acceptance tests serially against a **dedicated lab device** — never
+production. The tests create objects with `tf-acc-*` names and clean them up.
+
 ## How it works
 
 - [`internal/client`](internal/client) — a small typed HTTP client for the
@@ -115,16 +162,18 @@ is skipped under dev overrides.
 
 ## Limitations
 
-- IPv4 only for address objects and access rules so far; IPv6 endpoints exist on
-  the appliance and can be added with the same pattern.
+- Address objects and access rules are available in both IPv4 and IPv6
+  variants; NAT policies and interfaces are IPv4 only so far.
 - The object models cover common fields, not every appliance attribute. They
   should be cross-checked against the Swagger/OpenAPI document on your specific
   firmware (navigate to **Home | API** on the appliance) before production use.
-- Access rules are matched back to their appliance-assigned UUID by **name**
-  immediately after creation, so rule names must be unique.
-- No acceptance tests against a live appliance are included; the unit tests
-  exercise the client against an in-process HTTP server. Validate against a lab
-  device before managing production.
+  The NAT policy and interface shapes in particular vary across firmware and
+  models — verify against your appliance.
+- Access rules and NAT policies are matched back to their appliance-assigned
+  UUID by **name** immediately after creation, so those names must be unique.
+- Acceptance tests exist but require a live lab appliance and are gated by
+  `TF_ACC` (see [Testing](#testing)); they do not run in CI. Validate against a
+  lab device before managing production.
 
 ## License
 

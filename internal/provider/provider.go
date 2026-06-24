@@ -183,9 +183,13 @@ func (p *sonicosProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *sonicosProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewAddressObjectResource,
+		NewAddressObjectIPv6Resource,
 		NewServiceObjectResource,
 		NewZoneResource,
 		NewAccessRuleResource,
+		NewAccessRuleIPv6Resource,
+		NewNATPolicyResource,
+		NewInterfaceResource,
 	}
 }
 
