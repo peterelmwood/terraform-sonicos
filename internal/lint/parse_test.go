@@ -91,6 +91,37 @@ func TestParseStateValuesFallback(t *testing.T) {
 	}
 }
 
+// A TCP/UDP service using the single-port form sets only port_begin; Terraform
+// JSON then omits port_end. The parser must default port_end to port_begin (as
+// the provider does) so the range check does not flag a valid config.
+func TestParseServiceSinglePortForm(t *testing.T) {
+	const showJSON = `{
+      "planned_values": { "root_module": { "resources": [
+        {
+          "address": "sonicos_service_object.https",
+          "type": "sonicos_service_object",
+          "name": "https",
+          "values": { "name": "https", "protocol": "tcp", "port_begin": 8443 }
+        }
+      ] } }
+    }`
+	cfg, err := Parse([]byte(showJSON))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(cfg.ServiceObjects) != 1 {
+		t.Fatalf("service objects: %+v", cfg.ServiceObjects)
+	}
+	s := cfg.ServiceObjects[0]
+	if !s.HasPort || s.PortBegin != 8443 || s.PortEnd != 8443 {
+		t.Errorf("expected port_end defaulted to port_begin, got %+v", s)
+	}
+	// The single-port form must not produce a false-positive format finding.
+	if f := Lint(cfg); len(f) != 0 {
+		t.Errorf("expected clean lint, got %v", f)
+	}
+}
+
 func TestParseEmptyInput(t *testing.T) {
 	cfg, err := Parse([]byte(`{}`))
 	if err != nil {

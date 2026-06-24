@@ -74,12 +74,20 @@ func (c *Config) add(r tfResource) {
 	case "sonicos_address_object_ipv6":
 		c.AddressObjects = append(c.AddressObjects, addressObjectFrom(r, true))
 	case "sonicos_service_object":
+		// The single-port form sets only port_begin; Terraform JSON then carries
+		// port_end as null/absent. The provider defaults that case to port_begin,
+		// so mirror it here rather than treating the omitted end as 0.
+		portBegin := integer(r.Values, "port_begin")
+		portEnd := portBegin
+		if r.Values["port_end"] != nil {
+			portEnd = integer(r.Values, "port_end")
+		}
 		c.ServiceObjects = append(c.ServiceObjects, ServiceObject{
 			Address:   r.Address,
 			Name:      str(r.Values, "name"),
 			Protocol:  str(r.Values, "protocol"),
-			PortBegin: integer(r.Values, "port_begin"),
-			PortEnd:   integer(r.Values, "port_end"),
+			PortBegin: portBegin,
+			PortEnd:   portEnd,
 			HasPort:   r.Values["port_begin"] != nil,
 		})
 	case "sonicos_zone":
