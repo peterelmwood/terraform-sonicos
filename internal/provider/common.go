@@ -5,7 +5,15 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// known reports whether a string attribute has a concrete, usable value — i.e.
+// it is neither null nor unknown. Validators use it to skip attributes that are
+// absent or not yet resolved (e.g. derived from another resource during plan).
+func known(s types.String) bool {
+	return !s.IsNull() && !s.IsUnknown()
+}
 
 // configureProviderData extracts the shared providerData from a resource or
 // data source ConfigureRequest. providerData is nil during early framework
